@@ -43,6 +43,37 @@ function gradient(position) {
     return new THREE.Vector3(dx, dy, 0);
 }
 
+var position = new THREE.Vector3(-0.1, -0.1, -f(0.1, 0.1));
+
+// 화살표 생성
+var direction = new THREE.Vector3(1, 0, 0);
+var origin = position;  
+var length = 1;
+var color = 0xffff00;
+var arrowHelper = new THREE.ArrowHelper(direction.normalize(), origin, length, color);
+scene.add(arrowHelper);
+
+
+// function nextStep() {
+//     var learningRate = parseFloat(document.getElementById('learningRate').value);
+//     var grad = gradient(position);
+
+//     position.add(grad.multiplyScalar(-learningRate));
+//     position.z = f(position.x, position.y);
+
+//     if (grad.length() < 0.025) {
+//         document.getElementById('message').innerText = "Mission Success!";
+//         document.getElementById('nextStep').disabled = true;
+//     }
+
+//     maxSphere.position.copy(position);
+
+//     renderer.render(scene, camera);
+
+//     stepCount += 1;
+//     document.getElementById('stepCount').innerText = "Steps: " + stepCount;
+// }
+
 function nextStep() {
     var learningRate = parseFloat(document.getElementById('learningRate').value);
     var grad = gradient(position);
@@ -57,13 +88,16 @@ function nextStep() {
 
     maxSphere.position.copy(position);
 
+    // Update the arrow helper's direction and position
+    arrowHelper.setDirection(grad.negate().normalize());
+    arrowHelper.setLength(grad.length());
+    arrowHelper.position.copy(position);
+
     renderer.render(scene, camera);
 
     stepCount += 1;
     document.getElementById('stepCount').innerText = "Steps: " + stepCount;
 }
-
-var position = new THREE.Vector3(0.1, 0.1, f(0.1, 0.1));
 
 function parametricFunction(u, v, target) {
     var range = 2.5;
@@ -85,6 +119,28 @@ var mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
 document.getElementById("nextStep").addEventListener("click", nextStep);
+
+// Add an event listener for clicks
+window.addEventListener('click', function(event) {
+    // Create a raycaster
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+
+    // Convert the mouse position to normalized device coordinates (-1 to +1)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Update the picking ray with the camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
+
+    // Calculate the objects that intersect with the picking ray
+    var intersects = raycaster.intersectObjects([arrowHelper]);
+
+    // If the arrow helper is clicked
+    if (intersects.length > 0) {
+        nextStep();  // Move the position
+    }
+}, false);
 
 renderer.render(scene, camera);
 
