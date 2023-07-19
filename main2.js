@@ -45,35 +45,6 @@ function gradient(position) {
 
 var position = new THREE.Vector3(-0.1, -0.1, -f(0.1, 0.1));
 
-// 화살표 생성
-var direction = new THREE.Vector3(1, 0, 0);
-var origin = position;  
-var length = 1;
-var color = 0xffff00;
-var arrowHelper = new THREE.ArrowHelper(direction.normalize(), origin, length, color);
-scene.add(arrowHelper);
-
-
-// function nextStep() {
-//     var learningRate = parseFloat(document.getElementById('learningRate').value);
-//     var grad = gradient(position);
-
-//     position.add(grad.multiplyScalar(-learningRate));
-//     position.z = f(position.x, position.y);
-
-//     if (grad.length() < 0.025) {
-//         document.getElementById('message').innerText = "Mission Success!";
-//         document.getElementById('nextStep').disabled = true;
-//     }
-
-//     maxSphere.position.copy(position);
-
-//     renderer.render(scene, camera);
-
-//     stepCount += 1;
-//     document.getElementById('stepCount').innerText = "Steps: " + stepCount;
-// }
-
 function nextStep() {
     var learningRate = parseFloat(document.getElementById('learningRate').value);
     var grad = gradient(position);
@@ -90,7 +61,6 @@ function nextStep() {
 
     // Update the arrow helper's direction and position
     arrowHelper.setDirection(grad.negate().normalize());
-    arrowHelper.setLength(grad.length());
     arrowHelper.position.copy(position);
 
     renderer.render(scene, camera);
@@ -98,6 +68,7 @@ function nextStep() {
     stepCount += 1;
     document.getElementById('stepCount').innerText = "Steps: " + stepCount;
 }
+
 
 function parametricFunction(u, v, target) {
     var range = 2.5;
@@ -112,6 +83,16 @@ var maxMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 var maxSphere = new THREE.Mesh(maxGeometry, maxMaterial);
 maxSphere.position.set(0.1, 0.1, f(0.1, 0.1));
 scene.add(maxSphere);
+
+// Create the arrow helper at the maxSphere's position
+var direction = new THREE.Vector3(1, 0, 0);
+var origin = maxSphere.position;  
+var length = 10;
+var color = 0x000000;
+var arrowHelper = new THREE.ArrowHelper(direction.normalize(), origin, length, color);
+arrowHelper.setLength(2, 0.5, 0.25);  // Set the length to 2, the head length to 0.5, and the head width to 0.25
+scene.add(arrowHelper);
+
 
 var geometry = new THREE.ParametricGeometry(parametricFunction, 50, 50);
 var material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
@@ -134,7 +115,7 @@ window.addEventListener('click', function(event) {
     raycaster.setFromCamera(mouse, camera);
 
     // Calculate the objects that intersect with the picking ray
-    var intersects = raycaster.intersectObjects([arrowHelper]);
+    var intersects = raycaster.intersectObjects(arrowHelper.children, true);
 
     // If the arrow helper is clicked
     if (intersects.length > 0) {
