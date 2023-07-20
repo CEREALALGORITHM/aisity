@@ -47,21 +47,20 @@ var position = new THREE.Vector3(-0.1, -0.1, -f(0.1, 0.1));
 
 function nextStep() {
     var learningRate = parseFloat(document.getElementById('learningRate').value);
-    var grad = gradient(position);
+    var direction = gradient(position);
 
-    position.add(grad.multiplyScalar(-learningRate));
+    position.add(direction.multiplyScalar(-learningRate));
     position.z = f(position.x, position.y);
 
-    if (grad.length() < 0.025) {
+    if(direction.length() < 0.025){
         document.getElementById('message').innerText = "Mission Success!";
         document.getElementById('nextStep').disabled = true;
+        return;
     }
 
     maxSphere.position.copy(position);
 
-    // Update the arrow helper's direction and position
-    arrowHelper.setDirection(grad.negate().normalize());
-    arrowHelper.position.copy(position);
+    drawArrows();  // Draw arrows at the new position
 
     renderer.render(scene, camera);
 
@@ -84,14 +83,39 @@ var maxSphere = new THREE.Mesh(maxGeometry, maxMaterial);
 maxSphere.position.set(0.1, 0.1, f(0.1, 0.1));
 scene.add(maxSphere);
 
-// Create the arrow helper at the maxSphere's position
-var direction = new THREE.Vector3(1, 0, 0);
-var origin = maxSphere.position;  
-var length = 10;
-var color = 0x000000;
-var arrowHelper = new THREE.ArrowHelper(direction.normalize(), origin, length, color);
-arrowHelper.setLength(2, 0.5, 0.25);  // Set the length to 2, the head length to 0.5, and the head width to 0.25
-scene.add(arrowHelper);
+var arrowHelpers = []; // 화살표들을 저장할 배열
+
+function drawArrows() {
+    // Remove existing arrows
+    arrowHelpers.forEach(function(arrowHelper) {
+        scene.remove(arrowHelper);
+    });
+    arrowHelpers = [];
+
+    // Draw new arrows
+    for (var i = 0; i < 8; i++) {
+        var angle = i * Math.PI / 4;
+        var direction =  new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0);
+        var origin = maxSphere.position;
+        var length = 1;
+        var color = 0x000000;
+        var arrowHelper = new THREE.ArrowHelper(direction, origin, length, color);
+        arrowHelper.setLength(2, 0.5, 0.25);
+        scene.add(arrowHelper);
+        arrowHelpers.push(arrowHelper);
+    }
+}
+
+drawArrows();  // 화살표 추가
+
+// // Create the arrow helper at the maxSphere's position
+// var direction = new THREE.Vector3(1, 0, 0);
+// var origin = maxSphere.position;  
+// var length = 10;
+// var color = 0x000000;
+// var arrowHelper = new THREE.ArrowHelper(direction.normalize(), origin, length, color);
+// arrowHelper.setLength(2, 0.5, 0.25);  // Set the length to 2, the head length to 0.5, and the head width to 0.25
+// scene.add(arrowHelper);
 
 
 var geometry = new THREE.ParametricGeometry(parametricFunction, 50, 50);
@@ -99,12 +123,17 @@ var material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
 var mesh = new THREE.Mesh(geometry, material);
 scene.add(mesh);
 
-document.getElementById("nextStep").addEventListener("click", nextStep);
+document.getElementById("nextStep").addEventListener("click", function() {
+    var direction = gradient(position);
+    nextStep(direction);
+});
 
-// Add an event listener for clicks
+// 화살표 클릭이벤트 리스너
 window.addEventListener('click', function(event) {
     // Create a raycaster
     var raycaster = new THREE.Raycaster();
+    raycaster.linePrecision = 0.8; // 값이 작을수록 정확도 높아짐
+
     var mouse = new THREE.Vector2();
 
     // Convert the mouse position to normalized device coordinates (-1 to +1)
@@ -114,12 +143,13 @@ window.addEventListener('click', function(event) {
     // Update the picking ray with the camera and mouse position
     raycaster.setFromCamera(mouse, camera);
 
-    // Calculate the objects that intersect with the picking ray
-    var intersects = raycaster.intersectObjects(arrowHelper.children, true);
+    for (var i = 0; i < arrowHelpers.length; i++) {
+        var intersects = raycaster.intersectObjects(arrowHelpers[i].children, true);
 
-    // If the arrow helper is clicked
-    if (intersects.length > 0) {
-        nextStep();  // Move the position
+        if (intersects.length > 0) {
+            nextStep();
+            break;
+        }
     }
 }, false);
 
